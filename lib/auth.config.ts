@@ -2,6 +2,7 @@ import type { NextAuthConfig } from 'next-auth'
 import type { Role } from '@prisma/client'
 
 export const authConfig = {
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "fallback_secret_for_development_only",
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/login',

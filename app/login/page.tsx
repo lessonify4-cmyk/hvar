@@ -1,4 +1,6 @@
 import { signIn } from '@/lib/auth'
+import { AuthError } from 'next-auth'
+import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import Link from 'next/link'
@@ -45,15 +47,16 @@ export default function LoginPage({
               'use server'
               try {
                 await signIn('credentials', Object.fromEntries(formData))
-              } catch (error: any) {
-                if (error.type === 'CredentialsSignin' || error.message.includes('CredentialsSignin')) {
-                  // Next.js requires redirecting to the error page or we can throw a specific error,
-                  // but NextAuth v5 recommends redirecting or handling state.
-                  // Since the page already looks for ?error=... we can redirect:
-                  const { redirect } = await import('next/navigation');
-                  redirect('/login?error=CredentialsSignin');
+              } catch (error) {
+                if (error instanceof AuthError) {
+                  if (error.type === 'CredentialsSignin') {
+                    redirect('/login?error=CredentialsSignin')
+                  }
+                  // For other AuthErrors, we can also redirect with a generic error
+                  redirect('/login?error=Configuration')
                 }
-                throw error; // Rethrow redirect errors
+                // Rethrow NEXT_REDIRECT and other unhandled errors
+                throw error
               }
             }}
             className="space-y-6"

@@ -45,18 +45,22 @@ export default function LoginPage({
           <form
             action={async (formData) => {
               'use server'
+              let errorType = null;
               try {
-                await signIn('credentials', Object.fromEntries(formData))
+                await signIn('credentials', Object.fromEntries(formData), { redirectTo: '/dashboard' })
               } catch (error) {
                 if (error instanceof AuthError) {
-                  if (error.type === 'CredentialsSignin') {
-                    redirect('/login?error=CredentialsSignin')
-                  }
-                  // For other AuthErrors, we can also redirect with a generic error
-                  redirect('/login?error=Configuration')
+                  errorType = error.type;
+                } else {
+                  // Rethrow NEXT_REDIRECT and other unhandled errors
+                  throw error
                 }
-                // Rethrow NEXT_REDIRECT and other unhandled errors
-                throw error
+              }
+              
+              if (errorType === 'CredentialsSignin') {
+                redirect('/login?error=CredentialsSignin')
+              } else if (errorType) {
+                redirect('/login?error=Configuration')
               }
             }}
             className="space-y-6"

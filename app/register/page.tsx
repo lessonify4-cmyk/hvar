@@ -1,4 +1,5 @@
 import { signIn } from '@/lib/auth'
+import { AuthError } from 'next-auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import Link from 'next/link'
@@ -48,8 +49,9 @@ export default function RegisterPage({
               const email = formData.get('email') as string
               const password = formData.get('password') as string
               
-              if (!email || !password) return redirect('/register?error=missing_fields')
+              if (!email || !password) redirect('/register?error=missing_fields')
               
+              let registrationError = false;
               try {
                 // Call our API route to handle the secure creation and hashing
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -61,14 +63,31 @@ export default function RegisterPage({
                 })
                 
                 if (!res.ok) {
-                  return redirect('/register?error=registration_failed')
+                  registrationError = true;
                 }
               } catch (error) {
-                return redirect('/register?error=registration_error')
+                registrationError = true;
+              }
+              
+              if (registrationError) {
+                redirect('/register?error=registration_error')
               }
               
               // Automatically sign in after registration
-              await signIn('credentials', { email, password, redirectTo: '/dashboard' })
+              let authErrorType = null;
+              try {
+                await signIn('credentials', { email, password, redirectTo: '/dashboard' })
+              } catch (error) {
+                if (error instanceof AuthError) {
+                  authErrorType = error.type;
+                } else {
+                  throw error; // Let NEXT_REDIRECT pass through
+                }
+              }
+              
+              if (authErrorType) {
+                redirect('/login?error=Configuration')
+              }
             }}
             className="space-y-6"
           >
